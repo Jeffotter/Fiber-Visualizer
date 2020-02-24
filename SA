@@ -1,0 +1,591 @@
+# -*- coding: utf-8 -*-
+import plotly
+import plotly.graph_objs as go
+import pandas as pd
+import numpy as np
+import plotly.plotly as py
+import math
+import time
+from datetime import datetime,timedelta
+
+
+#testdata=pd.read_csv("C:/Users/jeffery.ott/Pythonexcels/connell47.csv")
+cdata=pd.read_csv("C:/Users/jeffery.ott/SAexcels/SAcomp.csv")
+pdata=pd.read_csv("C:/Users/jeffery.ott/SAexcels/Directional_m.csv")
+fracdata=pd.read_csv("C:/Users/jeffery.ott/SAexcels/SA_FRACHIT.csv")
+clustdata=pd.read_csv("C:/Users/jeffery.ott/SAexcels/Clusters.csv")
+
+
+apilist=cdata.iloc[:,1]
+#print(apilist[2])
+apiarray=np.array(apilist.tolist())
+api=pdata.iloc[0,1]
+api=int(api)
+data=[]
+wellnamelist=[]
+
+
+Iroquois102CH_M=pdata.iloc[:,4]
+Iroquois102CH_X=pdata.iloc[:,7]
+Iroquois102CH_Y=pdata.iloc[:,6]
+Iroquois102CH_Z=pdata.iloc[:,5]
+
+Iroquois102CH_M=Iroquois102CH_M.drop(index=[0,1,2,3])
+Iroquois102CH_X=Iroquois102CH_X.drop(index=[0,1,2,3])
+Iroquois102CH_Y=Iroquois102CH_Y.drop(index=[0,1,2,3])
+Iroquois102CH_Z=Iroquois102CH_Z.drop(index=[0,1,2,3])
+
+Iroquois102CH_M=Iroquois102CH_M.dropna()
+Iroquois102CH_X=Iroquois102CH_X.dropna()
+Iroquois102CH_Y=Iroquois102CH_Y.dropna()
+Iroquois102CH_Z=Iroquois102CH_Z.dropna()
+
+IR102_M=Iroquois102CH_M.astype(float)
+IR102_X=Iroquois102CH_X.astype(float)
+IR102_Y=Iroquois102CH_Y.astype(float)
+IR102_Z=Iroquois102CH_Z.astype(float)
+IR102_Z=np.negative(IR102_Z)
+
+
+
+
+hit_wn=fracdata.loc[:,'Well_Name']
+hit_api=fracdata.loc[:,'API']
+hit_stage=fracdata.loc[:,'Hit_Num']
+hit_hitdepth=fracdata.loc[:,'Hit_depth']
+hit_stagec=fracdata.loc[:,'Stage_N']
+hit_time=fracdata.iloc[:,6]
+hit_starttime=fracdata.iloc[:,7]
+hit_finaltime=fracdata.iloc[:,5]
+
+
+clusttp=clustdata.iloc[:,5]
+clustapi=clustdata.loc[:,'Well_API']
+cluststg=clustdata.loc[:,'Stage']
+clustclust=clustdata.loc[:,'Cluster']
+
+
+
+clust_x=[]
+clust_y=[]
+clust_z=[]
+
+datearray=[]
+colorarray=[]
+#print((-2)**2)
+
+for i in range(0,2):
+            y=i*4
+            count=0
+            #print(i)
+            wellname=pdata.iloc[0,y]
+            #welldate=pdata.iloc[0,y+2]
+            welldate="09/09/18" #Arbitrary date
+            welldate=datetime.strptime(welldate,'%m/%d/%y')
+            print(wellname)
+            wellnamelist.append(wellname)
+            api=pdata.iloc[0,y+1]
+            api=int(api)
+            #print(api)
+            md=pdata.iloc[:,y]
+            vd=pdata.iloc[:,y+1] 
+            x=pdata.iloc[:,y+3] 
+            y=pdata.iloc[:,y+2] 
+            md=md.drop(index=[0,1,2,3])
+            vd=vd.drop(index=[0,1,2,3]) 
+            x=x.drop(index=[0,1,2,3]) 
+            y=y.drop(index=[0,1,2,3])
+            md=md.dropna()
+            vd=vd.dropna()
+            x=x.dropna()
+            y=y.dropna()
+            mdc= md.astype(float)
+            vdc= vd.astype(float)
+            xc=x.astype(float)
+            yc=y.astype(float)
+            vdc=np.negative(vdc)
+            colar=[ 'blue', 'yellow', 'aqua', 'red', 'pink', 'steelblue', 'orange', 'lime', 'olive' ]
+            frac_color_arry=['white','red','blue','green','indego']
+            trace = go.Scatter3d(
+                    x=xc, y=yc, z=vdc,
+                    name=wellname,
+                    mode='lines',
+                    marker=dict(
+                        size=1,
+                        color='blue',
+                        
+                    ),
+                    line=dict(
+                        color=colar[i],
+                        width=7,
+            
+                    )
+                
+                )
+            data.append(trace)
+            datearray.append(welldate)
+    
+            
+            turnedon=False
+            countp=0
+            checkcount=0
+           
+            for k in apiarray:
+                if(k==api):
+                    tp=cdata.loc[count,'Top_perf']
+                    fd=cdata.loc[count,'DATE']
+                    sfd=fd
+                    fd=datetime.strptime(fd,'%m/%d/%Y')
+                    bp=cdata.loc[count,'Btm_perf']
+                    stage=cdata.loc[count,'STAGE']
+                    isp=cdata.loc[count, 'FINAL_ISIP']
+                    checker=True
+                    countperf=0
+                    indexsaver=0
+                    indexarray=[]
+                    for st in hit_stagec:
+                        if(st==stage):
+                            indexarray.append(indexsaver)
+                        indexsaver=indexsaver+1    
+                    
+                    for j in mdc:
+                        countperf=countperf+1
+                        xp=[]
+                        yp=[]
+                        vp=[]
+                        if(tp<j):
+                            countp=countp+1
+                            xp.append(xc[countperf])
+                            yp.append(yc[countperf])
+                            vp.append(vdc[countperf])
+                          
+                            #This is adding the clusters section 
+                            clustcount=countperf
+                            sizer=int(isp)/1000
+                            colorarray.append(sizer)
+                            countclu=0
+                            trace1 = go.Scatter3d(
+                                    x=xp, y=yp, z=vp,
+                                    showlegend=False,
+                                    name=wellname,
+                                    hovertext="Frac Date:" + sfd+ '<br> '+"MD: "+str(tp)+ '<br>' + "Stage: "+ str(stage) + '<br>' + "ISIP:" + str(isp) , 
+                                    mode='markers',
+                                    marker=dict(
+                                        symbol='square',
+                                        colorscale='Reds',
+                                        showscale=False,
+                                        color=[int(isp)],
+                                        cmin=3000,
+                                        cmax=4500
+                                        
+                                        
+                                    ),
+                                            
+                                )
+                              
+                            datearray.append(fd) #stage dates
+                            data.append(trace1)
+                            #This is very bad coding the cluster only works for this specific case Im sorry future person
+                            clustc=0
+                            for ck in clustapi:                               
+                                if(ck==api and stage==cluststg[clustc]):
+                                       topclust=clusttp[clustc]
+                                       #print(stage,clustclust[clustc])
+                                       curclust=clustclust[clustc]
+                                       countmd=0
+                                       for j in mdc:
+                                           countmd=countmd+1
+                                           xcl=[]
+                                           ycl=[]
+                                           vcl=[]
+                                           if(topclust<j):
+                                               #print("yes")
+                                               xcl.append(xc[countmd])
+                                               ycl.append(yc[countmd])
+                                               vcl.append(vdc[countmd])
+                                               clust_x.append(xc[countmd])
+                                               clust_y.append(yc[countmd])
+                                               clust_z.append(vdc[countmd])
+                                               
+                                               
+                                               trace1 = go.Scatter3d(
+                                                       x=xcl, y=ycl, z=vcl,
+                                                       showlegend=False,
+                                                       name=wellname,
+                                                       hovertext="Frac Date:" + sfd+ '<br> '+"MD: "+str(topclust)+ '<br>' + "Stage: "+ str(stage) + '<br>' + "Cluster:" + str(curclust) , 
+                                                       mode='markers',
+                                                       marker=dict(
+                                                               symbol='circle',
+                                                               color='white',
+                                                               size=5,
+                                                                                                                                               
+                                                                    ),)
+                                            
+
+                                               datearray.append(fd) #cluster dates
+                                               data.append(trace1)
+                                               checkcount=checkcount+1
+                                               break
+                                               
+                                clustc=clustc+1
+                            
+                            break
+                else:
+                    checker=False
+                if checker==True:
+                    turnedon=True
+                if(turnedon==True and checker==False):
+                    break
+                count=count+1
+
+
+#This is due to the fact my IR102_Z wasnt working will fix later 
+verticallist=[]
+for zv in vdc:
+    checker=zv
+    verticallist.append(checker)
+
+
+currhitx=[]
+currhity=[]
+currhitv=[]
+result=[]
+resultindex=[]
+isrepeatcheck=[]
+
+fraccounter=0
+for frachit in hit_hitdepth:
+    hitcounter=4 #this is 4 because the well being fraced into index starts at 4 
+    thestage=hit_stagec[fraccounter]#this keep trach of what stage we are on
+    thetime=hit_time[fraccounter]
+    fd=hit_starttime[fraccounter]
+    hitf=hit_finaltime[fraccounter]
+    hitdat=datetime.strptime(hitf,'%m/%d/%y %H:%M') 
+    #now we have the hit MD and stage 
+    currhitx=[]
+    currhity=[]
+    currhitv=[]
+    for dis in IR102_M: #This loops through the entire MD of the Fiber Well
+       #frachitround=math.floor(frachit)  #Round to be closer MAY TAKE OUT
+       if(frachit<dis):
+           #print(frachit)
+           #print(dis)
+           doubler=dis
+           isrepeatcheck.append(doubler)
+           currhitv.append(vdc[hitcounter])
+           currhitx.append(IR102_X[hitcounter])
+           currhity.append(IR102_Y[hitcounter])
+           break
+       hitcounter=hitcounter+1
+    #But this point we should have our correct location of the frac hit  in currhitxyv
+    
+    #Now to loop through the completions in the correct stage to find the closest 
+    tcc=0
+    closest=1000000
+    
+    cloindex=0
+    for hitclusterstg in cluststg:
+         if(hitclusterstg==thestage):
+             distance=math.sqrt((clust_x[tcc]-currhitx[0])**2+(clust_y[tcc]-currhity[0])**2+(clust_z[tcc]-currhitv[0])**2)
+             #print(thestage,hitclusterstg, clustclust[tcc])
+             #print(distance, tcc)
+             if(distance<closest):
+                 cloindex=tcc
+                 closest=distance
+                 closee ='%.1f'%(closest)
+             #print(distance)
+             #result.append(distance)
+         if(hitclusterstg>thestage or (hitclusterstg==24 and clustclust[tcc]==8)):
+             isrepeat=0
+             for chec in isrepeatcheck:
+                 if(chec==doubler):
+                        isrepeat=isrepeat+1
+             
+             result.append(closest)
+             resultindex.append(cloindex)
+             hittime='%.2f'%(thetime)
+             hitrate=closest/thetime
+             rate=hitrate
+             hitrate='%.2f'%(hitrate)
+             fh='%.2f'%(frachit)
+             currhitx.append(clust_x[cloindex])
+             currhity.append(clust_y[cloindex])
+             currhitv.append(clust_z[cloindex])
+             
+             
+             #This is where the time element will go 
+             currsegx=[]
+             currsegy=[]
+             currsegz=[]
+             #currsegx=currhitx[:]
+             #currsegy=currhity[:]
+             #currsegz=currhitv[:]
+             currsegx.append(currhitx[1])
+             currsegx.append(currhitx[0])
+             currsegy.append(currhity[1])
+             currsegy.append(currhity[0])
+             currsegz.append(currhitv[1])
+             currsegz.append(currhitv[0])
+             
+             dat=datetime.strptime(fd,'%m/%d/%y %H:%M') 
+             #print(closest,thetime,dat)
+             unitx=(currsegx[0]-currsegx[1])/closest
+             unity=(currsegy[0]-currsegy[1])/closest
+             unitz=(currsegz[0]-currsegz[1])/closest
+             
+             time_res=5 #HERE IS THE RESOLUTION
+             
+             looper=math.floor(thetime/5) #Here is the resolution 
+             #THis is the hardpark
+             for minrun in range(1,looper+1):
+                 del currsegx[1]
+                 del currsegy[1]
+                 del currsegz[1]
+                 dat=dat+timedelta(minutes=time_res)   #here is the second change for the resolution 
+                 z10min=currsegz[0]-(minrun*time_res*rate)*unitz
+                 x10min=currsegx[0]-(minrun*time_res*rate)*unitx
+                 y10min=currsegy[0]-(minrun*time_res*rate)*unity
+                 d=math.sqrt((currsegx[0]-x10min)**2+(currsegy[0]-y10min)**2+(currsegz[0]-z10min)**2)
+                 dis='%.2f'%(d)
+                 #print(distance)
+                 #print("point")
+                 #print(x10min,y10min,z10min)
+                 currsegx.append(x10min)
+                 currsegy.append(y10min)
+                 currsegz.append(z10min)
+                 datearray.append(dat)
+                 trace = go.Scatter3d(
+                         x=currsegx, y=currsegy, z=currsegz,
+                         name="Frac Seg",
+                         hovertext="Distance:  " + str(dis) +'<br>'+"Timepassed: "+str(minrun*time_res) + " mins",
+                         showlegend=False,
+                         mode='lines',
+                         line=dict(
+                                 color='red',
+                                 width=1,),
+                         marker=dict(
+                                 color='yellow',
+                                 size=2,       
+                                 ))
+             
+                 data.append(trace)
+            #this section is now account for all the changes in distances at the respective hit times (hit_finaltime)
+             dat=datetime.strptime(fd,'%m/%d/%y %H:%M') 
+             for finaltime in hit_finaltime:
+                checktime=datetime.strptime(finaltime,'%m/%d/%y %H:%M')
+                if(checktime>dat and checktime<hitdat):
+                    #print(checktime-dat)
+                    del currsegx[1]
+                    del currsegy[1]
+                    del currsegz[1]
+                    date_difference=checktime-dat
+                    timepassed=(date_difference.seconds)/60
+                    #print(checktime,dat,timepassed)
+                    #here is the second change for the resolution 
+                    z10min=currsegz[0]-(timepassed*rate)*unitz
+                    x10min=currsegx[0]-(timepassed*rate)*unitx
+                    y10min=currsegy[0]-(timepassed*rate)*unity
+                    d=math.sqrt((currsegx[0]-x10min)**2+(currsegy[0]-y10min)**2+(currsegz[0]-z10min)**2)
+                    dis='%.2f'%(d)
+                    #print(distance)
+                    #print("point")
+                    #print(x10min,y10min,z10min)
+                    currsegx.append(x10min)
+                    currsegy.append(y10min)
+                    currsegz.append(z10min)
+                    datearray.append(checktime)
+                    trace = go.Scatter3d(
+                         x=currsegx, y=currsegy, z=currsegz,
+                         name="Frac Seg",
+                         hovertext="Distance:  " + str(dis) +'<br>'+"Timepassed: "+str(checktime-dat) + " mins",
+                         showlegend=False,
+                         mode='lines',
+                         line=dict(
+                                 color='red',
+                                 width=1,),
+                         marker=dict(
+                                 color='yellow',
+                                 size=2,       
+                                 ))
+             
+                    data.append(trace)
+                   
+                
+                 #END OF THE TIME ELEMENT stuff  
+             #print(currhitx,currhity,currhitv)
+             trace = go.Scatter3d(
+                     x=currhitx, y=currhity, z=currhitv,
+                     showlegend=False,
+                     name=wellname,
+                     hovertext="Distance:  " + str(closee) +'<br>'+"Hit time mins "+str(hittime) + ' <br>' "The Rate Ft/mins " + hitrate + '<br>' + "MD: " + str(fh) + '<br>' + "MAX TIME: " + fd+'<br>' + "HIT TIME: " + str(hitdat), 
+                     mode='lines',
+                     line=dict(
+                     color=frac_color_arry[isrepeat],
+                     width=3,
+                     ),)    
+             datearray.append(hitdat)
+             data.append(trace)
+             break
+         tcc=tcc+1           
+    fraccounter=fraccounter+1 #keeps track of what stage we are on
+            
+
+#now here is where I sort everything for the slider 
+sorteddates=datearray[:]
+sacdates=datearray[:]
+sacdata=data[:]
+sorteddata=[]
+sorteddates.sort()
+data_by_dates=[]
+#print(len(datearray))
+indexer=0
+for d in sorteddates:
+    for dn in range(0,len(sacdates)):
+        #print(len(sacdates))
+        if(d==sacdates[dn]):
+            #print(dn)
+            sorteddata.append(sacdata[dn])
+            del sacdata[dn]
+            del sacdates[dn]
+            sacdates.append(1)
+            break
+    indexer=indexer+1
+    
+print("Data Sorted")
+#here is where I find all the unique values for the slider 
+
+new_sort=[]
+#find unique date values
+#This code is taking all the days things happened (sorteddays) and making the list unique and adding them sorted 
+finder=sorteddates[0]
+for d in range(1,2020):
+    if(finder!=sorteddates[d]):
+        new_sort.append(finder)
+    finder=sorteddates[d]
+new_sort.append(sorteddates[2019])    
+#need to format the data
+
+print("Unique Values Found")    
+
+#format the slider         
+stepcounter = []
+for i in range(len(new_sort)):
+    tester = dict(
+        method = 'restyle',  
+        args = ['visible', [False] * len(data)],
+        label=str(new_sort[i])
+    )
+    #Here in each loop we need to set the proper visability in this section we are building the arrays which are formatted correctly 
+    tester['args'][1][0] = True 
+    holddate=new_sort[i]
+    for k in range(len(sorteddata)):
+        check=sorteddates[k]
+        if(check>holddate):
+            stepcounter.append(tester)
+            break
+        else:
+            tester['args'][1][k] = True
+        
+
+
+sliders = [dict(
+    active = 0,
+    currentvalue = {"prefix": "Date "},
+    pad = {"l": 80,"b":10},
+    steps =stepcounter,
+    font=dict(family="Times New Roman",color="white",size=14),
+    tickcolor='white',
+    transition=dict(duration=10,easing="linear"),
+    #borderwidth=2,
+    #bordercolor='white',
+    
+)]
+
+annotations = list([
+    dict(text='Iroquois Fiber ', x=.5, y=.99, align='center', font=dict(family="Times New Roman",color="white",size=20),showarrow=False)
+])
+
+
+
+
+             
+#This is the format for the entire grid 
+layout = go.Layout(
+    paper_bgcolor='rgb(0,0,0)',
+    legend=dict(
+    bordercolor='white',
+    borderwidth=2,
+    font=dict(size=14, color='white')
+               ),
+    plot_bgcolor='rgb(0,0,0)',
+    #updatemenus=updatemenus,
+    annotations=annotations,
+    sliders=sliders,
+    scene=dict(
+    xaxis = dict(
+         backgroundcolor="rgb(0, 0, 0)",
+         gridcolor="rgb(0, 0, 0)",
+         tickwidth=2,
+         ticklen=10,
+         ticks="inside",
+         tickcolor='white',
+         tickformat=".0",
+         showbackground=True,
+         zerolinecolor="rgb(0, 0, 0)",
+         title=' Easting ',
+         titlefont=dict(size=18,color='white'),),
+    yaxis = dict(
+        backgroundcolor="rgb(0, 0,0)",
+        gridcolor="rgb(0, 0, 0)",
+        showbackground=True,
+        tickformat=".0",
+        tickwidth=1,
+        ticks="inside",
+        nticks=4,
+        ticklen=10,
+        tickcolor='white',
+        zerolinecolor="rgb(0, 0, 0)",
+        title='Northing',
+        titlefont=dict(size=18,color='white'),),
+           
+    zaxis = dict(
+        backgroundcolor="rgb(0, 0,0)",
+        gridcolor="rgb(0, 0, 0)",
+        #tickmode='linear',
+        dtick=100,
+        tick0=-8500,
+        ticks="inside",
+        tickformat=".0",
+        tickwidth=1,
+        ticklen=10,
+        tickcolor='white',
+        showbackground=True,
+        zerolinecolor="rgb(0, 0, 0)",
+        range=[-12600,-11500],
+         title='Depth',
+         titlefont=dict(size=18,color='white'),),),
+    margin=dict(
+        l=0,
+        r=0,
+        b=0,
+        t=0
+    )
+)
+
+
+
+    
+    
+fig = go.Figure(data=sorteddata, layout=layout)
+fig['layout']['scene'].update(go.layout.Scene(
+    aspectmode='manual',
+    aspectratio=go.layout.scene.Aspectratio(
+        x=1, y=.4, z=1
+    )
+))
+plotly.offline.plot(fig, auto_open=False, filename= "Iroquoisf.html")
+print("Done")
+#plotly.offline.iplot(fig, auto_open=True, filename= "Junefinalbuttons")
+#py.plot(fig, auto_open=True)
+
+
