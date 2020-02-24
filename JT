@@ -1,0 +1,403 @@
+# -*- coding: utf-8 -*-
+import plotly
+import plotly.graph_objs as go
+import pandas as pd
+import numpy as np
+import plotly.plotly as py
+import math
+import time
+from datetime import datetime,timedelta
+
+
+#testdata=pd.read_csv("C:/Users/jeffery.ott/Pythonexcels/connell47.csv")
+cdata=pd.read_csv("C:/Users/jeffery.ott/Pythonexcels/JuneTippetcompp.csv")
+pdata=pd.read_csv("C:/Users/jeffery.ott/Pythonexcels/Interpjunedtck.csv")
+fracdata=pd.read_csv("C:/Users/jeffery.ott/Pythonexcels/JuneTippethits.csv")
+
+apilist=cdata.iloc[:,1]
+#print(apilist[2])
+apiarray=np.array(apilist.tolist())
+api=pdata.iloc[0,1]
+api=int(api)
+data=[]
+wellnamelist=[]
+
+Junetippet16_M=pdata.iloc[:,12]
+Junetippet16_X=pdata.iloc[:,13]
+Junetippet16_Y=pdata.iloc[:,14]
+Junetippet16_Z=pdata.iloc[:,15]
+
+Junetippet16_M=Junetippet16_M.drop(index=[0,1,2,3])
+Junetippet16_X=Junetippet16_X.drop(index=[0,1,2,3])
+Junetippet16_Y=Junetippet16_Y.drop(index=[0,1,2,3])
+Junetippet16_Z=Junetippet16_Z.drop(index=[0,1,2,3])
+
+Junetippet16_M=Junetippet16_M.dropna()
+Junetippet16_X=Junetippet16_X.dropna()
+Junetippet16_Y=Junetippet16_Y.dropna()
+Junetippet16_Z=Junetippet16_Z.dropna()
+
+jt16_M=Junetippet16_M.astype(float)
+jt16_X=Junetippet16_X.astype(float)
+jt16_Y=Junetippet16_Y.astype(float)
+jt16_Z=Junetippet16_Z.astype(float)
+jt16_Z=np.negative(jt16_Z)
+
+hit_wn=fracdata.loc[:,'Well_Name']
+hit_api=fracdata.loc[:,'API']
+hit_stage=fracdata.loc[:,'Stage']
+hit_hitdepth=fracdata.loc[:,'Hit_depth']
+hit_stagec=fracdata.loc[:,'Stage_N']
+datearray=[]
+colorarray=[]
+#print((-2)**2)
+
+for i in range(0,9):
+            y=i*4
+            count=0
+            #print(i)
+            wellname=pdata.iloc[0,y]
+            welldate=pdata.iloc[0,y+2]
+            print(wellname)
+            wellnamelist.append(wellname)
+            api=pdata.iloc[0,y+1]
+            api=int(api)
+            #print(api)
+            md=pdata.iloc[:,y]
+            vd=pdata.iloc[:,y+3] 
+            x=pdata.iloc[:,y+1] 
+            y=pdata.iloc[:,y+2] 
+            md=md.drop(index=[0,1,2,3])
+            vd=vd.drop(index=[0,1,2,3]) 
+            x=x.drop(index=[0,1,2,3]) 
+            y=y.drop(index=[0,1,2,3])
+            md=md.dropna()
+            vd=vd.dropna()
+            x=x.dropna()
+            y=y.dropna()
+            mdc= md.astype(float)
+            vdc= vd.astype(float)
+            xc=x.astype(float)
+            yc=y.astype(float)
+            vdc=np.negative(vdc)
+            
+           
+            
+            colar=[ 'plum', 'yellow', 'aqua', 'red', 'pink', 'steelblue', 'orange', 'lime', 'olive' ]
+            frac_color_arry=['red','orange','yellow','green','lightblue','indigo', 'violet']
+            
+            
+            
+            trace = go.Scatter3d(
+                    x=xc, y=yc, z=vdc,
+                    name=wellname,
+                    mode='lines',
+                    marker=dict(
+                        size=1,
+                        color='blue',
+                        
+                    ),
+                    line=dict(
+                        color=colar[i],
+                        width=7,
+            
+                    )
+                
+                )
+            data.append(trace)
+            datearray.append(welldate)
+    
+            turnedon=False
+            countp=0
+            
+            for k in apiarray:
+                if(k==api):
+                    tp=cdata.loc[count,'Top_perf']
+                    fd=cdata.loc[count,'DATE']
+                    bp=cdata.loc[count,'Btm_perf']
+                    stage=cdata.loc[count,'STAGE']
+                    isp=cdata.loc[count, 'FINAL_ISIP']
+                    checker=True
+                    countperf=0
+                    for j in mdc:
+                        countperf=countperf+1
+                        xp=[]
+                        yp=[]
+                        vp=[]
+                        if(tp<j):
+                            countp=countp+1
+                            xp.append(xc[countperf])
+                            yp.append(yc[countperf])
+                            vp.append(vdc[countperf])
+                          
+                            #This is adding the clusters section 
+                            clustcount=countperf
+                            sizer=int(isp)/1000
+                            colorarray.append(sizer)
+                            countclu=0
+                            trace1 = go.Scatter3d(
+                                    x=xp, y=yp, z=vp,
+                                    showlegend=False,
+                                    name=wellname,
+                                    hovertext="Frac Date:" + fd+ '<br> '+"MD: "+str(tp)+ '<br>' + "Stage: "+ str(stage) + '<br>' + "ISIP:" + isp , 
+                                    mode='markers',
+                                    marker=dict(
+                                        symbol='square',
+                                        colorscale='Reds',
+                                        showscale=False,
+                                        color=[int(isp)],
+                                        cmin=1240,
+                                        cmax=3500
+                                        
+                                        
+                                    ),
+                                            
+                                )
+                            datearray.append(fd)
+                            data.append(trace1)
+                            seecount=0
+                            for kii in hit_api:
+                                if(fracdata.loc[countclu,'Stage_N']==stage and fracdata.loc[countclu,'API']==api):
+                                    xclust=[]
+                                    yclust=[]
+                                    zclust=[]
+                                    HitPt=fracdata.loc[countclu,'Hit_depth']
+                                    if(fracdata.loc[countclu,'Hit_depth']>0):
+                                        seecount=seecount+1
+                                        #print(seecount)
+                                        clustcount=clustcount+1
+                                        xclust.append(xc[clustcount])
+                                        yclust.append(yc[clustcount])
+                                        zclust.append(vdc[clustcount])
+                                        hitcount=0
+                                        for j in jt16_M:
+                                            if(HitPt<j):
+                                                 xclust.append(jt16_X[hitcount])
+                                                 yclust.append(jt16_Y[hitcount])
+                                                 zclust.append(jt16_Z[hitcount])
+                                                # fraccolor=clustcount%6   #this is for a different color 
+                                                 #print(fraccolor)
+                                                 break
+                                            hitcount=hitcount+1
+                                        
+                                        distance=math.sqrt((xclust[0]-xclust[1])**2+(yclust[0]-yclust[1])**2+(zclust[0]-zclust[1])**2)
+                                        distance ='%.1f'%(distance)
+                                        #print(distance)
+                                         #this is where the distance formula will go                                                                                                           
+                                        trace1 = go.Scatter3d(
+                                                x=xclust, y=yclust, z=zclust,
+                                                showlegend=False,
+                                                name=wellname,
+                                                hovertext="cluster: " + str(seecount) + " Stage: " + str(stage) + '<br>' + " Distance: " + str(distance) ,
+                                                mode='lines',
+                                                marker=dict(
+                                                        size=3,
+                                                        symbol='square',
+                                                        color='coral',
+                                        
+                                                ),
+                                                line=dict(
+                                                    #color=frac_color_arry[seecount],
+                                                    color=colar[i],
+                                                    width=4,
+            
+                                                    )
+                                            
+                                            )
+                                    datearray.append(fd)
+                                    data.append(trace1)
+                                countclu=countclu+1
+                        
+                            
+                            break
+                else:
+                    checker=False
+                if checker==True:
+                    turnedon=True
+                if(turnedon==True and checker==False):
+                    break
+                count=count+1
+
+#arrange array by the dates  this could use some updating 
+data_by_dates=[]
+sorteddates=[]
+currentdate = datetime.strptime(datearray[46], "%m/%d/%Y")
+sorteddates.append(currentdate)
+data_by_dates.append(data[46])
+sorteddates.append(currentdate)
+for k in range(0, 365):
+   currentdate=currentdate+timedelta(days=1)
+   indexer=0
+   for d in range(len(datearray)):
+       datecheck=datetime.strptime(datearray[d], "%m/%d/%Y")
+       if(currentdate==datecheck):
+           sorteddates.append(datecheck)
+           data_by_dates.append(data[d])
+
+print("Data Sorted")
+
+
+new_sort=[]
+#find unique date values
+sorteddates.pop(0)
+#This code is taking all the days things happened (sorteddays) and making the list unique and adding them sorted 
+finder=sorteddates[0]
+for d in range(1,855):
+    if(finder!=sorteddates[d]):
+        new_sort.append(finder)
+    finder=sorteddates[d]
+new_sort.append(sorteddates[854])    
+#need to format the data
+
+
+        
+ 
+
+    
+#format the slider         
+stepcounter = []
+for i in range(len(new_sort)):
+    tester = dict(
+        method = 'restyle',  
+        args = ['visible', [False] * len(data)],
+        label=str(new_sort[i].date())
+    )
+    #Here in each loop we need to set the proper visability in this section we are building the arrays which are formatted correctly 
+    tester['args'][1][0] = True 
+    holddate=new_sort[i]
+    for k in range(len(data_by_dates)):
+        check=sorteddates[k]
+        if(check>holddate):
+            stepcounter.append(tester)
+            break
+        else:
+            tester['args'][1][k] = True
+        
+        
+
+#Here is where we made the buttons for each of the wells 
+buttonmaker=[]
+buttontemp=dict(
+               args=['visible', [True] * len(data)],
+               label="ALL",
+               method='restyle'
+           )   
+buttonmaker.append(buttontemp)
+for wname in range(len(wellnamelist)):
+    buttontemp= dict(
+               args=['visible', [False] * len(data)],
+               label=wellnamelist[wname],
+               method='restyle'
+           )
+    for j in range(len(data_by_dates)):
+        if(wellnamelist[wname]==data_by_dates[j]['name'] or wellnamelist[3]==data_by_dates[j]['name']):
+            buttontemp['args'][1][j]=True
+        else:
+            buttontemp['args'][1][j]=False
+    buttonmaker.append(buttontemp)
+
+      
+updatemenus=list([
+    dict(            
+        type="buttons",
+        buttons=buttonmaker,
+        ),])       
+        
+
+
+sliders = [dict(
+    active = 0,
+    currentvalue = {"prefix": "Date "},
+    pad = {"l": 30,"b":10},
+    steps =stepcounter,
+    font=dict(family="Times New Roman",color="white",size=14),
+    tickcolor='white',
+    transition=dict(duration=10,easing="linear"),
+    #borderwidth=2,
+    #bordercolor='white',
+    
+)]
+
+
+#how to add text into the list
+annotations = list([
+    dict(text='Fiber Viewer v1.04', x=.5, y=.99, align='center', font=dict(family="Times New Roman",color="white",size=14),showarrow=False)
+])
+
+    
+
+    
+
+    
+            
+             
+#This is the format for the entire grid 
+layout = go.Layout(
+    paper_bgcolor='rgb(0,0,0)',
+    legend=dict(
+    #x=1.1,
+    y=.98,
+    bordercolor='white',
+    borderwidth=2,
+    font=dict(size=14, color='white')
+               ),
+    plot_bgcolor='rgb(0,0,0)',
+    updatemenus=updatemenus,
+    annotations=annotations,
+    sliders=sliders,
+    scene=dict(
+    xaxis = dict(
+         backgroundcolor="rgb(0, 0, 0)",
+         gridcolor="rgb(0, 0, 0)",
+         dtick=500,
+         tickwidth=2,
+         ticklen=10,
+         tickcolor='white',
+         showbackground=True,
+         zerolinecolor="rgb(0, 0, 0)",
+         title=' Easting ',
+         titlefont=dict(size=18,color='white'),),
+    yaxis = dict(
+        backgroundcolor="rgb(0, 0,0)",
+        gridcolor="rgb(0, 0, 0)",
+        showbackground=True,
+        dtick=500,
+        tickwidth=2,
+        ticklen=10,
+        tickcolor='white',
+        zerolinecolor="rgb(0, 0, 0)",
+        title='Northing',
+        titlefont=dict(size=18,color='white'),),
+           
+    zaxis = dict(
+        backgroundcolor="rgb(0, 0,0)",
+        gridcolor="rgb(0, 0, 0)",
+        #tickmode='linear',
+        dtick=100,
+        tick0=-8500,
+        tickwidth=2,
+        ticklen=10,
+        tickcolor='white',
+        showbackground=True,
+        zerolinecolor="rgb(0, 0, 0)",
+        range=[-9400,-8500],
+         title='Depth',
+         titlefont=dict(size=18,color='white'),),),
+    margin=dict(
+        l=0,
+        r=0,
+        b=0,
+        t=0
+    )
+)
+
+
+
+    
+    
+fig = go.Figure(data=data_by_dates, layout=layout)
+plotly.offline.plot(fig, auto_open=True, filename= "Junefinalbuttons.html")
+print("Done")
+#plotly.offline.iplot(fig, auto_open=True, filename= "Junefinalbuttons")
+#py.plot(fig, auto_open=True)
+
